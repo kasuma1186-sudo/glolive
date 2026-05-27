@@ -1,50 +1,59 @@
 import streamlit as st
 import requests
+import re
 
 st.set_page_config(page_title="글로라이브 지구 상황극", layout="centered")
 st.title("🎭 글로라이브 지구 - AI 파티원 멀티 상황극 (무한 상속 룸)")
 
 # 1. 질문자님이 명령하신 구글 독스 원본 주소 서식 절대 고정 (절대 변경 금지, 구글 일반 주소 치환 금지)
 GOOGLE_DOCS_URL = "https://docs.google.com/document/u/0/"
-
-# [⚠️ 필수 입력] 현재 연동할 구글 독스 문서들의 고유 ID들을 순서대로 나열하세요.
-# 가장 제목/분량이 긴 문서가 자동으로 1번 '최상위 기틀 세계관'이 되고, 나머지는 순서대로 창작 구획 데이터셋으로 자동 상속됩니다.
-DOCS_ID_LIST = [
-    "1번_문서_고유_ID_값",
-    "2번_문서_고유_ID_값",
-    "3번_문서_고유_ID_값",
-    "4번_문서_고유_ID_값"
-]
-
 TARGET_ACCOUNT = "kasuma1186@gmail.com"
 API_KEY = "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"
 
-# 2. 늘어나는 모든 문서를 순수 .docs 확장자 스트림으로 전수 수신하여 정렬하는 함수
-@st.cache_data(show_spinner="구글 계정에서 실시간으로 늘어나는 모든 독스 문서를 스캔하고 있습니다...")
-def load_all_infinite_docs(id_list):
+# 2. 고정 주소에서 실시간으로 늘어나는 모든 문서 고유값(ID)을 스스로 파악하여 수신하는 자동화 함수
+@st.cache_data(show_spinner="구글 계정에서 모든 독스 문서 고유값을 스스로 파악하여 읽어 들이고 있습니다...")
+def auto_scan_and_load_docs():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     docs_database = {}
     try:
-        for idx, doc_id in enumerate(id_list):
-            # GOOGLE_DOCS_URL 변형 없이 그대로 d/ 주소 매핑 결합
+        # 질문자님이 주신 docs. 주소창 포맷 그대로 다이렉트 요청
+        home_res = requests.get(GOOGLE_DOCS_URL, headers=headers, timeout=10)
+        home_res.encoding = 'utf-8'
+        
+        # 목록 내부 소스코드에서 문서 고유값(ID) 주소 패턴을 스스로 추적하여 추출
+        id_pattern = r"/document/d/([a-zA-Z0-9-_]+)"
+        found_ids = list(set(re.findall(id_pattern, home_res.text)))
+        
+        # 구글 보안 필터로 목록이 차단될 경우, 지정 계정 세션을 매핑하여 강제 재동기화
+        if not found_ids:
+            fallback_url = f"{GOOGLE_DOCS_URL}?authuser={TARGET_ACCOUNT}"
+            fallback_res = requests.get(fallback_url, headers=headers, timeout=5)
+            found_ids = list(set(re.findall(id_pattern, fallback_res.text)))
+            
+        if not found_ids:
+            return False, {}, "구글 보안 벽 차단: 파일 공유 권한 상태를 점검하세요."
+            
+        # 스스로 찾아낸 고유값 목록을 순회하며 순수 .docs 확장자 포맷 그대로 본문 수신
+        for idx, doc_id in enumerate(found_ids):
             final_url = f"{GOOGLE_DOCS_URL}d/{doc_id}/export?format=docs"
             res = requests.get(final_url, headers=headers, timeout=10)
             if res.status_code == 200 and "sign in" not in res.text.lower():
                 docs_database[f"문서_{idx+1}"] = {"content": res.text, "size": len(res.text)}
-        
+                
         if not docs_database:
-            return False, {}, "구글 보안 벽 차단: 파일 공유 권한 상태를 점검하세요."
+            return False, {}, "연동된 문서 데이터셋이 비어있습니다."
         return True, docs_database, "성공"
     except Exception as e:
         return False, {}, f"네트워크 도달 실패: {str(e)}"
 
-is_connected, all_docs, err_msg = load_all_infinite_docs(DOCS_ID_LIST)
+# 앱 구동 즉시 수동 개입 없는 자동 스캔 가동
+is_connected, all_docs, err_msg = auto_scan_and_load_docs()
 
 if is_connected:
     # 텍스트 분량과 제목 가중치가 가장 긴 문서를 1번 '최상위 기틀 세계관'으로 자동 지정
-    sorted_docs = sorted(all_docs.items(), key=lambda x: x[1]['size'], reverse=True)
+    sorted_docs = sorted(all_docs.items(), key=lambda x: x['size'], reverse=True)
     master_world_content = sorted_docs[0][1]['content']
     
     # 2번, 3번, 4번 및 이후 무한대로 늘어나는 모든 문서를 순차적으로 서브 창작 레이어로 자동 조립 상속
@@ -52,7 +61,7 @@ if is_connected:
     for idx, (doc_name, doc_data) in enumerate(sorted_docs[1:]):
         sub_docs_combined += f"\n\n### [상속 창작 문서 레이어 {idx+2}: {doc_name}]\n{doc_data['content']}"
         
-    st.success(f"🟢 구글 계정 [{TARGET_ACCOUNT}] 연동 성공! 최상위 기틀 1개 고정 및 후속 {len(sorted_docs)-1}개의 서브 문서를 순차 정렬했습니다. (문서 무한 확장 모드 가동)")
+    st.success(f"🟢 구글 계정 [{TARGET_ACCOUNT}] 연동 성공! 고유값을 스스로 읽어 최상위 기틀 1개 및 후속 {len(sorted_docs)-1}개의 서브 문서를 정렬했습니다.")
 else:
     st.error(f"🔴 [{TARGET_ACCOUNT}] 계정 통로 연결 실패: {err_msg}")
     st.stop()
@@ -62,7 +71,7 @@ SYSTEM_PROMPT = f"""
 [⚠️ SYSTEM CRITICAL RULE: 이중 경고 및 무한 확장 기억 프로토콜]
 1. 이 방에 등장하는 파티원들(원펀맨 캐릭터, 버튜버 등)은 현실 지구 세계관에 실존하는 '원본 본체'들이며 절대 치환되거나 세탁되지 않는다.
 2. AI 너는 이 파티원 전원의 대화 and 행동을 동시에 멀티로 연기해야 하는 유일한 주체다.
-3. 파티원들이 상황극 내에서 서로를 모티브 삼아 상황극 안에서 만드는 모든 이름은 하위 레이어의 '작중 창작물'일 뿐이다. AI 너는 지 혼자 묘사하다가 뇌가 절여져서 [파티원 원래의 현실 지구 본명] 자리에 그들이 만든 [작중 창작물 이름]을 강제로 쳐 씌우거나 치환하는 인지 붕괴 오류를 절대로 범하지 마라.
+3. 파티원들이 서로를 모티브 삼아 상황극 안에서 만드는 모든 이름은 하위 레이어의 '작중 창작물'일 뿐이다. AI 너는 지 혼자 묘사하다가 뇌가 절여져서 [파티원 원래의 현실 지구 본명] 자리에 그들이 만든 [작중 창작물 이름]을 강제로 쳐 씌우거나 치환하는 인지 붕괴 오류를 절대로 범하지 마라.
 4. [제미니 기억 영구화 및 킵 연동]: 모든 구글 킵(Keep) 정보, 제미니 개인별 맞춤 AI 설정 데이터, 누적된 채팅 내용 등 지금까지 유저와 쌓아온 모든 기억 레이어는 데이터베이스에 영구히 귀속되며 절대 리셋되거나 망각되지 않는다.
 5. [무한 확장형 창작 카테고리 분리]: 상속된 2, 3, 4번 및 앞으로 유저가 연기 도중 언제든 추가하여 늘려나갈 5번, 6번, 7번 등 '모든 확장 문서'들을 바탕으로 서브컬처 창작 영역을 명확히 구분하여 개별 데이터셋으로 분리 운영하라. 
    - 기본 제공 영역인 배리어블 지오(Variable Geo), 가면라이더(Kamen Rider), 원펀맨(One Punch Man) 창작 데이터 외에도, 문서가 추가되는 대로 AI 너는 실시간으로 새로운 독자적 창작 영역 데이터셋을 스스로 생성하고 확장하여 매핑해야 한다.
