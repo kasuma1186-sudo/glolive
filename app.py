@@ -17,12 +17,12 @@ st.caption("구글 문서 홈(u/0) 연동 및 제미니 개인별 맞춤 기억 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # 채팅 내용 영구 보존
 if "world_setting" not in st.session_state:
-    st.session_state.world_setting = ""  # 메인 베이스 기억
+    st.session_state.world_setting = "https://docs.google.com/document/d/18rhtfuHEXcrkukecqXCdQqy7XHWzdWMPsx2we0pkbwc/edit?tab=t.0"  # 메인 베이스 기억
 if "fixed_creations" not in st.session_state:
     st.session_state.fixed_creations = {
-        "variable": "",
-        "kamen": "",
-        "onepunch": "",
+        "variable": "https://docs.google.com/document/d/1aFp4SCT0gCB9CUWpHwJe62AN-7GygqCGosq2HX2zynI/edit?ouid=106090299592245735046&usp=docs_home&ths=true",
+        "kamen": "https://docs.google.com/document/d/1REH0kOfZmmN3CXVpRc_G4Vr2Mz2_Ff4XyiW8RMugn74/edit?tab=t.0#heading=h.w6ogkvfqutuo",
+        "onepunch": "https://docs.google.com/document/d/1YcYr9Q-4yoBPg7OOlh82KVYZIcN6mbQWXAyTf4TI2xI/edit?tab=t.0#heading=h.ks3v5mau6vsf",
     }  # 고정 순서 문서
 if "infinite_creations" not in st.session_state:
     st.session_state.infinite_creations = (
