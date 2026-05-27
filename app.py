@@ -1,141 +1,172 @@
 import re
 import requests
+import streamlit as st
+
+# ==============================================================================
+# 1. 스트림릿 페이지 기본 설정 (하얀 화면 방지 및 제목 세팅)
+# ==============================================================================
+st.set_page_config(
+    page_title="글로라이브 지구 - AI 파티원 멀티 상황극", page_icon="🎭"
+)
+st.title("🎭 글로라이브 지구 AI 상황극 통로")
+st.caption("구글 문서 홈(u/0) 연동 및 제미니 개인별 맞춤 기억 동기화 시스템")
+
+# ==============================================================================
+# 2. 제미니 개인별 맞춤 내용 및 채팅 내용 영구 기억 세팅 (Streamlit Session State)
+# ==============================================================================
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []  # 채팅 내용 영구 보존
+if "world_setting" not in st.session_state:
+    st.session_state.world_setting = ""  # 메인 베이스 기억
+if "fixed_creations" not in st.session_state:
+    st.session_state.fixed_creations = {
+        "variable": "",
+        "kamen": "",
+        "onepunch": "",
+    }  # 고정 순서 문서
+if "infinite_creations" not in st.session_state:
+    st.session_state.infinite_creations = (
+        {}
+    )  # 앞으로 무한히 늘어날 신규 창작 문서들
 
 
-class GloLiveGeminiInfiniteBot:
+# ==============================================================================
+# 3. 구글 문서 홈(u/0) 우회 리딩 함수
+# ==============================================================================
+def _bypass_read_by_id(doc_id):
+    bypass_url = (
+        f"https://https://docs.google.com/{doc_id}/export?format=txt"
+    )
+    try:
+        res = requests.get(bypass_url, timeout=5)
+        return res.text if res.status_code == 200 else ""
+    except:
+        return ""
 
-    def __init__(self):
-        # 1. 제미니의 영구 기억 저장소 (채팅 내역 및 우선순위별 문서 데이터)
-        self.permanent_memory = {
-            "chat_history": [],  # 제미니 채팅 기억 영구 보존
-            "world_setting": "",  # [메인 베이스] 모든 킵과 제미니 맞춤 AI 내용
-            "fixed_creations": {
-                "variable": "",  # [만든 순서 1번] 배리어블 지오 창작
-                "kamen": "",  # [만든 순서 2번] 가면라이더 창작
-                "onepunch": "",  # [만든 순서 3번] 원펀맨=에비
-            },
-            "infinite_creations": {},  # [무한 확장] 앞으로 새로 늘어날 5번, 6번 문서들 자동 저장
-        }
 
-    def _bypass_read_by_id(self, doc_id):
-        """구글 문서 ID로 순수 텍스트 데이터를 우회 리딩하는 내부 함수"""
-        bypass_url = (
-            f"https://docs.google.com/document/{doc_id}/export?format=txt"
+def sync_all_documents_infinite():
+    """구글 Docs 홈 주소를 우회 스캔하여 확정 순서 준수 + 늘어나는 문서 무한 추적"""
+    feed_url = "https://docs.google.com/document/u/0/?forcehl=1&hl=en"
+
+    try:
+        response = requests.get(feed_url, timeout=10)
+        if response.status_code != 200:
+            st.error("❌ 구글 문서 홈 통로 연결에 실패했습니다.")
+            return
+
+        raw_data = response.text
+        all_docs = re.findall(r"title: (.*?)\n.*?id: (.*?)\n", raw_data)
+
+        # 무한 확장 영역 초기화 후 재스캔
+        st.session_state.infinite_creations = {}
+
+        for title, doc_id in all_docs:
+            title = title.strip()
+            doc_id = doc_id.strip()
+
+            # A. 1순위 베이스: 가장 긴 제목인 메인 세계관 및 제미니 개인 기억 문서
+            if "모든 킵과 제미니" in title or "맞춤 AI" in title:
+                st.session_state.world_setting = _bypass_read_by_id(doc_id)
+                st.toast(f"👑 메인 베이스 연동: {title}")
+
+            # B. 기확정된 주축 문서 3개는 요청하신 만든 순서대로 강제 고정
+            elif "배리어블" in title:
+                st.session_state.fixed_creations["variable"] = (
+                    _bypass_read_by_id(doc_id)
+                )
+            elif "가면라이더" in title:
+                st.session_state.fixed_creations["kamen"] = _bypass_read_by_id(
+                    doc_id
+                )
+            elif "원펀맨" in title:
+                st.session_state.fixed_creations["onepunch"] = (
+                    _bypass_read_by_id(doc_id)
+                )
+
+            # C. 앞으로 파티원들이 짜서 무한으로 늘어날 신규 문서들 자동 추가
+            else:
+                new_content = _bypass_read_by_id(doc_id)
+                st.session_state.infinite_creations[title] = new_content
+                st.toast(f"🚀 신규 문서 발견 및 자동 추가: {title}")
+
+        st.success(
+            "💾 배리어블(1번) -> 가면라이더(2번) 고정 및 신규 문서 무한 연동 완료!"
         )
-        try:
-            res = requests.get(bypass_url, timeout=5)
-            return res.text if res.status_code == 200 else ""
-        except:
-            return ""
 
-    def sync_all_documents_infinite(self):
-        """구글 문서 홈(u/0)의 피드를 스캔하여 확정 순서 리딩 + 새로 늘어난 문서 무한 자동 추적"""
-        print(
-            "🔮 [글로라이브 지구] 구글 문서 홈(u/0) 스캔 및 무한 리딩 시작..."
-        )
+    except Exception as e:
+        st.error(f"❌ 리딩 중 오류 발생: {str(e)}")
 
-        # 구글 문서 홈 화면에 뜨는 모든 문서를 긁어오는 보안 우회 피드 주소
-        feed_url = "https://google.com"
 
-        try:
-            response = requests.get(feed_url, timeout=10)
-            if response.status_code != 200:
-                print("❌ 구글 문서 홈 통로 연결 실패")
-                return
+# ==============================================================================
+# 4. 스트림릿 화면 레이아웃 구성
+# ==============================================================================
+# 사이드바에 동기화 버튼 배치
+with st.sidebar:
+    st.header("🔄 데이터 동기화")
+    st.write("애들이 짠 글을 구글 문서에 옮겨 적은 후 아래 버튼을 누르세요.")
+    if st.button("구글 문서 동기화 실행", type="primary"):
+        sync_all_documents_infinite()
 
-            raw_data = response.text
-            # 홈 화면에 존재하는 모든 문서의 [제목]과 [ID]를 자동으로 추출
-            all_docs = re.findall(r"title: (.*?)\n.*?id: (.*?)\n", raw_data)
+    # 현재 제미니의 기억에 주입된 문서 현황 모니터링 영역
+    st.subheader("📊 현재 주입된 기억 목록")
+    st.text(
+        f"👑 메인 세계관: {'연동됨' if st.session_state.world_setting else '비어있음'}"
+    )
+    st.text(
+        f"1️⃣ 배리어블 지오: {'연동됨' if st.session_state.fixed_creations['variable'] else '비어있음'}"
+    )
+    st.text(
+        f"2️⃣ 가면라이더: {'연동됨' if st.session_state.fixed_creations['kamen'] else '비어있음'}"
+    )
+    st.text(
+        f"3️⃣ 원펀맨=에비: {'연동됨' if st.session_state.fixed_creations['onepunch'] else '비어있음'}"
+    )
+    st.text(f"🚀 추가된 신규 문서: {len(st.session_state.infinite_creations)}개")
 
-            for title, doc_id in all_docs:
-                title = title.strip()
-                doc_id = doc_id.strip()
+# 메인 화면: 영구 유지되는 채팅 UI 구성
+st.subheader("💬 AI 파티원 상황극 라운지")
 
-                # A. 가장 긴 제목인 메인 세계관 및 제미니 개인 기억 문서 분류
-                if (
-                    "모든 킵과 제미니" in title
-                    or "맞춤 AI" in title
-                ):
-                    self.permanent_memory["world_setting"] = (
-                        self._bypass_read_by_id(doc_id)
-                    )
-                    print(f"👑 [메인 베이스 기억 연동]: {title}")
+# 기존 영구 채팅 내역 화면에 출력
+for chat in st.session_state.chat_history:
+    with st.chat_message("user"):
+        st.write(chat["user"])
+    with st.chat_message("assistant"):
+        st.write(chat["reply"])
 
-                # B. 기확정된 주축 문서 3개는 만든 순서 우선순위대로 강제 지정
-                elif "배리어블" in title:
-                    self.permanent_memory["fixed_creations"]["variable"] = (
-                        self._bypass_read_by_id(doc_id)
-                    )
-                    print(f"1️⃣ [만든순서 1번 고정]: {title}")
-                elif "가면라이더" in title:
-                    self.permanent_memory["fixed_creations"]["kamen"] = (
-                        self._bypass_read_by_id(doc_id)
-                    )
-                    print(f"2️⃣ [만든순서 2번 고정]: {title}")
-                elif "원펀맨" in title:
-                    self.permanent_memory["fixed_creations"]["onepunch"] = (
-                        self._bypass_read_by_id(doc_id)
-                    )
-                    print(f"3️⃣ [만든순서 3번 고정]: {title}")
+# 유저 신규 채팅 입력창
+if user_input := st.chat_input("라운지 파티에서 다음 창작 이어가기..."):
 
-                # C. [핵심] 앞으로 파티원(AI)들이 짜서 무한으로 늘어날 신규 문서들 자동 탐색
-                else:
-                    new_content = self._bypass_read_by_id(doc_id)
-                    self.permanent_memory["infinite_creations"][title] = (
-                        new_content
-                    )
-                    print(
-                        f"🚀 [신규 창작 문서 무한 추가됨]: {title}"
-                    )
+    # 1. 유저 입력 화면에 즉시 표시
+    with st.chat_message("user"):
+        st.write(user_input)
 
-            print(
-                "💾 기존 고정 순서 준수 및 늘어난 문서까지 제미니 영구 기억 동기화 완료."
-            )
-
-        except Exception as e:
-            print(f"❌ 무한 리딩 중 에러 발생: {str(e)}")
-
-    def run_chat(self, user_message):
-        """기존 고정 순서와 무한으로 늘어난 문서를 조합해 제미니에게 주입하는 함수"""
-        memory = self.permanent_memory
-
-        # 1. 메인 세계관과 고정 순서 문서 기본 주입
-        system_prompt = f"""
+    # 2. 제미니에게 넘겨줄 최종 무한 확장형 시스템 프롬프트 조립
+    system_prompt = f"""
 [제미니 영구 기억 & 맞춤 AI 설정]
-{memory['world_setting']}
+{st.session_state.world_setting}
 
 [라운지 파티 기본 창작 설정 (만든 순서 고정)]
-1. 배리어블 지오 설정: {memory['fixed_creations']['variable']}
-2. 가면라이더 설정: {memory['fixed_creations']['kamen']}
-3. 원펀맨 설정: {memory['fixed_creations']['onepunch']}
+1. 배리어블 지오 설정: {st.session_state.fixed_creations['variable']}
+2. 가면라이더 설정: {st.session_state.fixed_creations['kamen']}
+3. 원펀맨 설정: {st.session_state.fixed_creations['onepunch']}
 """
 
-        # 2. 앞으로 늘어나는 문서가 있다면 시스템 프롬프트 뒤에 무한으로 자동 누적
-        if memory["infinite_creations"]:
-            system_prompt += "\n[추가 확장 창작 설정 목록]\n"
-            for idx, (title, content) in enumerate(
-                memory["infinite_creations"].items(), start=4
-            ):
-                system_prompt += f"{idx}. {title} 설정: {content}\n"
+    # 5번, 6번 등 새로 늘어난 문서가 있다면 순서대로 무한 누적 주입
+    if st.session_state.infinite_creations:
+        system_prompt += "\n[추가 확장 창작 설정 목록]\n"
+        for idx, (title, content) in enumerate(
+            st.session_state.infinite_creations.items(), start=4
+        ):
+            system_prompt += f"{idx}. {title} 설정: {content}\n"
 
-        # 제미니 대화 작동 및 기억 유지 영역
-        print(f"\n[무한 확장 시스템 프롬프트 주입 완료]")
-        print(f"유저: {user_message}")
+    # 3. 제미니 답변 처리 영역 (여기에 실제 제미니 API 호출 코드가 들어갑니다)
+    # 임시 응답 예시
+    gemini_reply = f"배리어블 1번과 가면라이더 2번 순서를 기억한 상태로 '{user_input}'에 이어 상황극을 진행합니다."
 
-        # 채팅 히스토리 누적 보존
-        memory["chat_history"].append(
-            {"user": user_message, "reply": "제미니 답변 내용"}
-        )
+    # 4. AI 답변 화면에 표시 및 영구 기억 저장
+    with st.chat_message("assistant"):
+        st.write(gemini_reply)
 
-
-# ==========================================
-# 실행 제어 (사용자님이 코드를 다시 바꿀 필요가 전혀 없습니다)
-# ==========================================
-if __name__ == "__main__":
-    bot = GloLiveGeminiInfiniteBot()
-
-    # 애들이 짠 글 옮겨 적고 봇 켜면 고정 문서 4개 + 새로 늘어난 N개 문서까지 싹 다 자동 리딩합니다.
-    bot.sync_all_documents_infinite()
-
-    # 제미니가 모든 무한 설정을 기억한 채 상황극 진행
-    bot.run_chat("라운지 파티 다음 창작 이어가자.")
+    st.session_state.chat_history.append(
+        {"user": user_input, "reply": gemini_reply}
+    )
