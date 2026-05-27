@@ -4,15 +4,17 @@ import requests
 st.set_page_config(page_title="글로라이브 지구 상황극", layout="centered")
 st.title("🎭 글로라이브 지구 - AI 파티원 멀티 상황극")
 
-# 1. 질문자님이 지정하신 구글 독스 원본 주소 및 포맷 절대 고정
-GOOGLE_DOCS_URL = "https://google.com"
-DOCS_ID = "질문자님의_구글독스_고유ID_값"
+# 1. 질문자님이 지정하신 구글 독스 원본 주소 절대 고정 (변형 금지)
+GOOGLE_DOCS_URL = "https://docs.google.com/document/u/0/"
 
-# 타 확장자 변환 없이 순수 구글 독스 .docs 데이터 포맷 그대로 수신하는 다이렉트 통로
+# [⚠️ 필수] 질문자님의 진짜 구글 독스 주소창에서 영어+숫자로 된 긴 ID를 복사해서 아래 칸에 붙여넣으세요.
+DOCS_ID = "여기에_진짜_구글독스_고유ID_문자열을_박으세요"
+
+# 최종 문서 연동 주소 생성 (docs.google.com 포맷 강제 고정)
 FINAL_URL = f"{GOOGLE_DOCS_URL}d/{DOCS_ID}/export?format=docs"
 TARGET_ACCOUNT = "kasuma1186@gmail.com"
 
-# 2. kasuma1186@gmail.com 계정 및 .docs 파일 연동 체크 함수
+# 2. kasuma1186@gmail.com 계정 및 .docs 파일 실제 연결 상태 체크 함수
 @st.cache_data
 def check_kasuma_docs_connection():
     try:
@@ -22,11 +24,10 @@ def check_kasuma_docs_connection():
         response = requests.get(FINAL_URL, headers=headers, timeout=10)
         
         # 구글 로그인 창이나 보안 필터에 걸리지 않고 200 정상 신호를 받은 경우
-        if response.status_code == 200 and "sign in" not in response.text.lower() and "://google.com" not in response.text:
-            # .docs 바이너리 혹은 텍스트 스트림 수신 성공 파악
+        if response.status_code == 200 and "sign in" not in response.text.lower() and "accounts.google.com" not in response.text:
             return True, response.text
         else:
-            return False, f"구글 보안 벽 차단: '{TARGET_ACCOUNT}' 계정 내부 파일 일부가 잠겨있거나 공유 권한이 열리지 않음"
+            return False, f"구글 보안 벽 차단: 주소창의 고유 ID 값이 정확한지, 혹은 공유 설정이 '링크가 있는 모든 사용자'가 맞는지 재확인 필요"
     except Exception as e:
         return False, f"네트워크 도달 실패: {str(e)}"
 
@@ -46,7 +47,7 @@ SYSTEM_PROMPT = """
 1. 이 방에 등장하는 파티원들(원펀맨 캐릭터, 버튜버 등)은 현실 지구 세계관에 실존하는 '원본 본체'들이다. 
 2. AI인 너는 이 파티원 전원의 대화 and 행동을 동시에 멀티로 묘사(연기)해야 하는 유일한 주체다.
 3. 파티원들이 상황극 내에서 서로를 모티브 삼아 만드는 모든 이름은 하위 레이어의 '작중 창작물'일 뿐이다.
-4. AI 너는 지 혼자 파티원들을 묘사다가 뇌가 절여져서, [파티원 원래의 현실 지구 본명] 자리에 그들이 만든 [작중 창작물 이름]을 강제로 쳐 씌우거나 치환하는 인지 붕괴 오류를 절대로 범하지 마라. 무조건 원래 본명 레이어를 고정하여 출력하라.
+4. AI 너는 지 혼자 파티원들을 묘사하다가 뇌가 절여져서, [파티원 원래의 현실 지구 본명] 자리에 그들이 만든 [작중 창작물 이름]을 강제로 쳐 씌우거나 치환하는 인지 붕괴 오류를 절대로 범하지 마라. 무조건 원래 본명 레이어를 고정하여 출력하라.
 5. 업로드된 구글 독스 문서의 세계관 설정을 읽되, 본 규칙을 최우선으로 강제 적용하라.
 """
 
