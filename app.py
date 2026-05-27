@@ -52,10 +52,10 @@ with st.sidebar:
 
 # 초기 원본의 requests.get(URL) 방식을 그대로 실행하여 실시간으로 문서를 긁어옵니다.
 response = requests.get(URL)
-world_setting = ""
-variable_geo = ""
-kamen_rider = ""
-onepunch_man = ""
+world_setting = "https://docs.google.com/document/d/18rhtfuHEXcrkukecqXCdQqy7XHWzdWMPsx2we0pkbwc/edit?tab=t.0"
+variable_geo = "https://docs.google.com/document/d/1aFp4SCT0gCB9CUWpHwJe62AN-7GygqCGosq2HX2zynI/edit?ouid=106090299592245735046&usp=docs_home&ths=true"
+kamen_rider = "https://docs.google.com/document/d/1REH0kOfZmmN3CXVpRc_G4Vr2Mz2_Ff4XyiW8RMugn74/edit?tab=t.0#heading=h.w6ogkvfqutuo"
+onepunch_man = "https://docs.google.com/document/d/1YcYr9Q-4yoBPg7OOlh82KVYZIcN6mbQWXAyTf4TI2xI/edit?tab=t.0#heading=h.ks3v5mau6vsf"
 infinite_creations = {}
 
 if response.status_code == 200:
@@ -65,14 +65,14 @@ if response.status_code == 200:
         doc_id = doc_id.strip()
 
         # 각 문서를 초기 get_google_doc_context 함수로 실시간 리딩
-        if "모든 킵과 제미니" in title or "맞춤 AI" in title:
-            world_setting = https://docs.google.com/document/d/18rhtfuHEXcrkukecqXCdQqy7XHWzdWMPsx2we0pkbwc/edit?tab=t.0
+       if "모든 킵과 제미니" in title or "맞춤 AI" in title:
+            world_setting = get_google_doc_context(doc_id)
         elif "배리어블" in title:
-            variable_geo = https://docs.google.com/document/d/1aFp4SCT0gCB9CUWpHwJe62AN-7GygqCGosq2HX2zynI/edit?ouid=106090299592245735046&usp=docs_home&ths=true
-        elif "가면라이더" in title: https://docs.google.com/document/d/1REH0kOfZmmN3CXVpRc_G4Vr2Mz2_Ff4XyiW8RMugn74/edit?tab=t.0#heading=h.w6ogkvfqutuo
-            kamen_rider = 
+            variable_geo = get_google_doc_context(doc_id)
+        elif "가면라이더" in title:
+            kamen_rider = get_google_doc_context(doc_id)
         elif "원펀맨" in title:
-            onepunch_man = https://docs.google.com/document/d/1YcYr9Q-4yoBPg7OOlh82KVYZIcN6mbQWXAyTf4TI2xI/edit?tab=t.0#heading=h.ks3v5mau6vsf
+            onepunch_man = get_google_doc_context(doc_id)
         else:
             # 4개 이상으로 무한히 늘어나는 파티 창작 문서 자동 누적
             infinite_creations[title] = get_google_doc_context(doc_id)
