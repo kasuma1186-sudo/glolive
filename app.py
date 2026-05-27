@@ -7,7 +7,7 @@ import streamlit as st
 # 1. 초기 코드에서 사용했던 원본 연동 주소 체계 (그대로 유지)
 # ==============================================================================
 # 구글 문서 홈(u/0)의 피드를 긁어오는 초기 원본 주소입니다.
-URL = "https://docs.google.com/document/u/0/?forcehl=1&hl=en"
+URL = "https://docs.google.com/document/u/0"
 
 # [필수] 발급받으신 제미니 API 키를 여기에 입력하세요.
 GEMINI_API_KEY = "여기에_진짜_제미니_API_키를_넣으세요"
