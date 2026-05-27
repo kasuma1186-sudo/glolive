@@ -89,7 +89,7 @@ import requests
 
 def get_google_doc_context(doc_id):
     # 구글 API를 우회하여 문서를 텍스트 파일 형태로 강제 다운로드하는 주소입니다.
-    bypass_url = f"https://docs.google.com/document/u/0/{doc_id}/export?format=txt"
+    bypass_url = f"https://docs.google.com/d/{doc_id}/export?format=txt"
     
     try:
         response = requests.get(bypass_url)
