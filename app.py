@@ -29,7 +29,7 @@ def load_all_infinite_docs(id_list):
     try:
         for idx, doc_id in enumerate(id_list):
             # GOOGLE_DOCS_URL 변형 없이 그대로 d/ 주소 매핑 결합
-            final_url = f"{GOOGLE_DOCS_URL}d/{doc_id}/export?format=docx"
+            final_url = f"{GOOGLE_DOCS_URL}d/{doc_id}/export?format=docs"
             res = requests.get(final_url, headers=headers, timeout=10)
             if res.status_code == 200 and "sign in" not in res.text.lower():
                 docs_database[f"문서_{idx+1}"] = {"content": res.text, "size": len(res.text)}
