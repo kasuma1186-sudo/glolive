@@ -65,7 +65,7 @@ if response.status_code == 200:
         doc_id = doc_id.strip()
 
         # 각 문서를 초기 get_google_doc_context 함수로 실시간 리딩
-       if "모든 킵과 제미니" in title or "맞춤 AI" in title:
+        if "모든 킵과 제미니" in title or "맞춤 AI" in title:
             world_setting = get_google_doc_context(doc_id)
         elif "배리어블" in title:
             variable_geo = get_google_doc_context(doc_id)
