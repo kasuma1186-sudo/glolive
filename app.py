@@ -34,7 +34,7 @@ else:
     st.stop()
 
 # [⚠️ 필수 입력] openrouter.ai에서 무료로 발급받은 sk-or-v1-... 비밀번호를 여기에 붙여넣으세요.
-API_KEY = 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
+API_KEY = "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"
 
 # 2. 최상위 법전 고정 (본명 사수 이중 경고)
 SYSTEM_PROMPT = """
