@@ -85,6 +85,30 @@ if is_connected:
 else:
     st.error(f"🔴 [{TARGET_ACCOUNT}] 계정 통로 연결 실패: {err_msg}")
     st.stop()
+import requests
+
+def get_google_doc_context(doc_id):
+    # 구글 API를 우회하여 문서를 텍스트 파일 형태로 강제 다운로드하는 주소입니다.
+    bypass_url = f"https://docs.google.com/document/u/0/{doc_id}/export?format=txt"
+    
+    try:
+        response = requests.get(bypass_url)
+        if response.status_code == 200:
+            # 문서의 전체 텍스트 데이터 (세계관 설정 등)
+            context = response.text
+            return context
+        else:
+            return f"우회 실패 (에러 코드: {response.status_code})"
+    except Exception as e:
+        return f"연결 오류: {str(e)}"
+
+# 1. 사용하시는 구글 문서 주소창에서 https://google.com[이부분]/edit 
+#    사이에 있는 긴 문자열(ID)을 복사해서 아래에 넣으세요.
+DOCUMENT_ID = "여기에_구글_문서_ID를_넣으세요"
+
+# 2. 실행하면 로그인 없이 세계관 설정 텍스트를 바로 가져옵니다.
+world_setting = get_google_doc_context(DOCUMENT_ID)
+print(world_setting)
 
 # 3. 최상위 법전 고정 (본명 사수 이중 경고 + 기억 영구 보존 + 지정 문서 이름 고정 + 나무위키 가이드)
 SYSTEM_PROMPT = f"""
